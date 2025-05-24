@@ -1,55 +1,62 @@
 // Imagine these are UI components that need weather data
-class TemperatureDisplay {
-    update(temperature: number): void {
-        console.log(`Temperature Display: Current Temp: ${temperature}°C`);
-    }
+interface Display {
+	update(weatherStation: WeatherStation): void;
+}
+class TemperatureDisplay implements Display {
+	update(weatherStation: WeatherStation): void {
+		console.log(
+			`Temperature Display: Current Temp: ${weatherStation.getTemperature()}°C`
+		);
+	}
 }
 
-class HumidityDisplay {
-    update(humidity: number): void {
-        console.log(`Humidity Display: Current Humidity: ${humidity}%`);
-    }
+class HumidityDisplay implements Display {
+	update(weatherStation: WeatherStation): void {
+		console.log(
+			`Humidity Display: Current Humidity: ${weatherStation.getHumidity()}%`
+		);
+	}
 }
 
 // The subject that holds and updates weather data
 class WeatherStation {
-    private temperature: number = 0;
-    private humidity: number = 0;
+	private temperature: number = 0;
+	private humidity: number = 0;
 
-    // The WeatherStation holds direct references to specific displays
-    private temperatureDisplay: TemperatureDisplay;
-    private humidityDisplay: HumidityDisplay;
+	private displays: Display[] = [];
 
-    constructor() {
-        // The WeatherStation is tightly coupled to these concrete display types
-        this.temperatureDisplay = new TemperatureDisplay();
-        this.humidityDisplay = new HumidityDisplay();
-    }
+	public attach(display: Display) {
+		this.displays.push(display);
+	}
+	// Method to update weather measurements
+	public setMeasurements(temperature: number, humidity: number): void {
+		console.log("\n--- WeatherStation: New measurements received ---");
+		this.temperature = temperature;
+		this.humidity = humidity;
+		// When measurements change, it manually calls update on each display
+		this.measurementsChanged();
+	}
 
-    // Method to update weather measurements
-    public setMeasurements(temperature: number, humidity: number): void {
-        console.log("\n--- WeatherStation: New measurements received ---");
-        this.temperature = temperature;
-        this.humidity = humidity;
-        // When measurements change, it manually calls update on each display
-        this.measurementsChanged();
-    }
+	// This method directly calls update on specific display instances
+	private measurementsChanged(): void {
+		for (const display of this.displays) {
+			display.update(this);
+		}
+	}
 
-    // This method directly calls update on specific display instances
-    private measurementsChanged(): void {
-        // If we add a new display type (e.g., PressureDisplay), we MUST
-        // modify this method to add a call for it.
-        this.temperatureDisplay.update(this.temperature);
-        this.humidityDisplay.update(this.humidity);
-    }
-
-    // Getters for state (could be used by displays if needed, but not in current 'bad' code)
-    public getTemperature(): number { return this.temperature; }
-    public getHumidity(): number { return this.humidity; }
+	// Getters for state (could be used by displays if needed, but not in current 'bad' code)
+	public getTemperature(): number {
+		return this.temperature;
+	}
+	public getHumidity(): number {
+		return this.humidity;
+	}
 }
 
 // --- Usage ---
 const station = new WeatherStation();
+station.attach(new TemperatureDisplay());
+station.attach(new HumidityDisplay());
 
 station.setMeasurements(25, 65);
 station.setMeasurements(28, 60);
