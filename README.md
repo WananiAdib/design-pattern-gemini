@@ -10,7 +10,7 @@
 
 ### Structural
 
--   [ ] Adapter
+-   [x] Adapter
 -   [ ] Bridge
 -   [ ] Composite
 -   [x] Decorator
@@ -21,7 +21,7 @@
 ### Behavioral
 
 -   [ ] Chain of Responsibility
--   [ ] Command
+-   [x] Command
 -   [ ] Interpreter
 -   [ ] Iterator
 -   [ ] Mediator
