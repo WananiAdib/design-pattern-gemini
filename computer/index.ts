@@ -146,41 +146,6 @@ class ComputerBuilder implements IComputerBuilder {
 
 // Client directly using the problematic constructor:
 // It's hard to read what each parameter means, especially nulls and booleans.
-// const officePC = new Computer(
-// 	"Intel i5-12400",
-// 	8,
-// 	256,
-// 	null,
-// 	400,
-// 	"Windows 10 Pro",
-// 	true,
-// 	false
-// );
-// console.log(officePC.getSpecs());
-
-// const gamingPC = new Computer(
-// 	"AMD Ryzen 9 7950X",
-// 	32,
-// 	1000,
-// 	"NVIDIA RTX 4080",
-// 	850,
-// 	"Windows 11 Home",
-// 	true,
-// 	true
-// );
-// console.log(gamingPC.getSpecs());
-
-// const server = new Computer(
-// 	"Intel Xeon E3",
-// 	64,
-// 	4000,
-// 	null,
-// 	1000,
-// 	"Ubuntu Server 22.04 LTS",
-// 	false,
-// 	false
-// );
-// console.log(server.getSpecs());
 
 // Problem: The constructor is bloated. Order of optional parameters is confusing.
 // It's not immediately clear what each boolean or number means without looking at the definition.

@@ -27,7 +27,7 @@
 -   [ ] Mediator
 -   [ ] Memento
 -   [x] Observer
--   [ ] State
+-   [x] State
 -   [ ] Strategy
 -   [ ] Template Method
 -   [ ] Visitor
