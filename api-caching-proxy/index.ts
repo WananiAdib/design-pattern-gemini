@@ -2,37 +2,57 @@
 
 // 1. The Subject Interface (What both the Real Object and Proxy will implement)
 interface ThirdPartyYouTubeLib {
-    getVideoInfo(id: string): string;
+	getVideoInfo(id: string): string;
+}
+
+class CachedYoutubeClass implements ThirdPartyYouTubeLib {
+	private thirdPartyYoutube: ThirdPartyYouTubeClass;
+	private cache = new Map<string, string>();
+
+    constructor(thirdPartyYoutube: ThirdPartyYouTubeClass) {
+        this.thirdPartyYoutube = thirdPartyYoutube;
+    }
+
+	public getVideoInfo(id: string): string {
+		let result = this.cache.get(id);
+		if (result === undefined) {
+			result = this.thirdPartyYoutube.getVideoInfo(id);
+			this.cache.set(id, result);
+		}
+		return result;
+	}
 }
 
 // 2. The Real Subject (The actual, expensive 3rd-party service)
 class ThirdPartyYouTubeClass implements ThirdPartyYouTubeLib {
-    public getVideoInfo(id: string): string {
-        // Simulating a slow network request
-        console.log(`[Network Request] Fetching video info for ID: ${id}... (Takes 2 seconds)`);
-        
-        // In reality, this would be an HTTP call returning JSON
-        return `Video Data for [${id}]: Title, Description, View Count...`;
-    }
+	public getVideoInfo(id: string): string {
+		// Simulating a slow network request
+		console.log(
+			`[Network Request] Fetching video info for ID: ${id}... (Takes 2 seconds)`,
+		);
+
+		// In reality, this would be an HTTP call returning JSON
+		return `Video Data for [${id}]: Title, Description, View Count...`;
+	}
 }
 
 // 3. The Client code using the service directly
 class YouTubeManager {
-    private service: ThirdPartyYouTubeLib;
+	private service: ThirdPartyYouTubeLib;
 
-    constructor(service: ThirdPartyYouTubeLib) {
-        this.service = service;
-    }
+	constructor(service: ThirdPartyYouTubeLib) {
+		this.service = service;
+	}
 
-    public renderVideoPage(id: string): void {
-        console.log(`\n--- User requested page for video ${id} ---`);
-        const info = this.service.getVideoInfo(id);
-        console.log(`Rendering UI with: ${info}`);
-    }
+	public renderVideoPage(id: string): void {
+		console.log(`\n--- User requested page for video ${id} ---`);
+		const info = this.service.getVideoInfo(id);
+		console.log(`Rendering UI with: ${info}`);
+	}
 }
 
 // --- Client Usage (Initial) ---
-const realService = new ThirdPartyYouTubeClass();
+const realService = new CachedYoutubeClass(new ThirdPartyYouTubeClass());
 const manager = new YouTubeManager(realService);
 
 // The user clicks the same video multiple times, or multiple users view the trending video
