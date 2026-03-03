@@ -1,65 +1,161 @@
-
 interface HttpRequest {
-    ipAddress: string;
-    authToken: string | null;
-    body: any;
-    path: string;
+	ipAddress: string;
+	authToken: string | null;
+	body: any;
+	path: string;
 }
 
-class MonolithicServer {
-    // Simulated database/state
-    private requestCounts = new Map<string, number>();
-    private validTokens = ["secret-token-123", "admin-token-999"];
+abstract class AbstractMiddleware {
+	private nextMiddleware: AbstractMiddleware | undefined = undefined;
 
-    public handleRequest(req: HttpRequest): string {
-        console.log(`\n--- Incoming Request to ${req.path} from ${req.ipAddress} ---`);
+	public setNext(middleware: AbstractMiddleware): AbstractMiddleware {
+		this.nextMiddleware = middleware;
+		return this.nextMiddleware;
+	}
 
-        // 1. Rate Limiting Check
-        const count = this.requestCounts.get(req.ipAddress) || 0;
-        if (count > 5) {
-            console.log("❌ Rate Limit Exceeded.");
-            return "429 Too Many Requests";
-        }
-        this.requestCounts.set(req.ipAddress, count + 1);
-        console.log("✅ Rate Limit Check Passed.");
-
-        // 2. Authentication Check
-        if (!req.authToken || !this.validTokens.includes(req.authToken)) {
-            console.log("❌ Authentication Failed.");
-            return "401 Unauthorized";
-        }
-        console.log("✅ Authentication Passed.");
-
-        // 3. Data Validation Check (simulated generic check)
-        if (req.path === "/api/data" && !req.body) {
-            console.log("❌ Validation Failed: Missing body.");
-            return "400 Bad Request";
-        }
-        console.log("✅ Validation Passed.");
-
-        // 4. Actual Request Processing (Business Logic)
-        console.log(`Processing business logic for ${req.path}...`);
-        return "200 OK - Request Processed Successfully";
-    }
+	public handle(request: HttpRequest): string {
+		if (this.nextMiddleware) {
+			return this.nextMiddleware.handle(request);
+		}
+		return "";
+	}
 }
 
-// --- Client Usage (Initial) ---
-const middlewareServer = new MonolithicServer();
+class RateLimitMiddleware extends AbstractMiddleware {
+	private requestCounts = new Map<string, number>();
+
+	public handle(request: HttpRequest): string {
+		console.log(
+			`\n--- Incoming Request to ${request.path} from ${request.ipAddress} ---`,
+		);
+
+		const count = this.requestCounts.get(request.ipAddress) || 0;
+		if (count > 5) {
+			console.log("❌ Rate Limit Exceeded.");
+			return "429 Too Many Requests";
+		}
+		this.requestCounts.set(request.ipAddress, count + 1);
+		console.log("✅ Rate Limit Check Passed.");
+
+		return super.handle(request);
+	}
+}
+
+class AuthenticationMiddleware extends AbstractMiddleware {
+	private validTokens = ["secret-token-123", "admin-token-999"];
+
+	public handle(request: HttpRequest): string {
+		if (
+			!request.authToken ||
+			!this.validTokens.includes(request.authToken)
+		) {
+			console.log("❌ Authentication Failed.");
+			return "401 Unauthorized";
+		}
+		console.log("✅ Authentication Passed.");
+		return super.handle(request);
+	}
+}
+class DataValidationMiddleware extends AbstractMiddleware {
+	public handle(request: HttpRequest): string {
+		if (request.path === "/api/data" && !request.body) {
+			console.log("❌ Validation Failed: Missing body.");
+			return "400 Bad Request";
+		}
+		console.log("✅ Validation Passed.");
+		return super.handle(request);
+	}
+}
+
+class ControllerMiddleware extends AbstractMiddleware {
+	public handle(request: HttpRequest): string {
+		// 4. Actual Request Processing (Business Logic)
+		console.log(`Processing business logic for ${request.path}...`);
+		return "200 OK - Request Processed Successfully";
+	}
+}
+
+// Client Usage
+const middlewareServer = new RateLimitMiddleware();
+
+const authenticator = new AuthenticationMiddleware();
+const validator = new DataValidationMiddleware();
+const controller = new ControllerMiddleware();
+
+middlewareServer.setNext(authenticator).setNext(validator).setNext(controller);
 
 // Success
-console.log(middlewareServer.handleRequest({ ipAddress: "192.168.1.1", authToken: "secret-token-123", path: "/api/data", body: { key: "value" } }));
+console.log(
+	middlewareServer.handle({
+		ipAddress: "192.168.1.1",
+		authToken: "secret-token-123",
+		path: "/api/data",
+		body: { key: "value" },
+	}),
+);
 
 // Fails Auth
-console.log(middlewareServer.handleRequest({ ipAddress: "192.168.1.2", authToken: "bad-token", path: "/api/data", body: { key: "value" } }));
+console.log(
+	middlewareServer.handle({
+		ipAddress: "192.168.1.2",
+		authToken: "bad-token",
+		path: "/api/data",
+		body: { key: "value" },
+	}),
+);
 
 // Fails Validation
-console.log(middlewareServer.handleRequest({ ipAddress: "192.168.1.1", authToken: "admin-token-999", path: "/api/data", body: null }));
+console.log(
+	middlewareServer.handle({
+		ipAddress: "192.168.1.1",
+		authToken: "admin-token-999",
+		path: "/api/data",
+		body: null,
+	}),
+);
 
 // Fails Rate Limit (spamming the same IP)
-middlewareServer.handleRequest({ ipAddress: "10.0.0.1", authToken: "secret-token-123", path: "/api/test", body: {} });
-middlewareServer.handleRequest({ ipAddress: "10.0.0.1", authToken: "secret-token-123", path: "/api/test", body: {} });
-middlewareServer.handleRequest({ ipAddress: "10.0.0.1", authToken: "secret-token-123", path: "/api/test", body: {} });
-middlewareServer.handleRequest({ ipAddress: "10.0.0.1", authToken: "secret-token-123", path: "/api/test", body: {} });
-middlewareServer.handleRequest({ ipAddress: "10.0.0.1", authToken: "secret-token-123", path: "/api/test", body: {} });
-middlewareServer.handleRequest({ ipAddress: "10.0.0.1", authToken: "secret-token-123", path: "/api/test", body: {} });
-console.log(middlewareServer.handleRequest({ ipAddress: "10.0.0.1", authToken: "secret-token-123", path: "/api/test", body: {} }));
+middlewareServer.handle({
+	ipAddress: "10.0.0.1",
+	authToken: "secret-token-123",
+	path: "/api/test",
+	body: {},
+});
+middlewareServer.handle({
+	ipAddress: "10.0.0.1",
+	authToken: "secret-token-123",
+	path: "/api/test",
+	body: {},
+});
+middlewareServer.handle({
+	ipAddress: "10.0.0.1",
+	authToken: "secret-token-123",
+	path: "/api/test",
+	body: {},
+});
+middlewareServer.handle({
+	ipAddress: "10.0.0.1",
+	authToken: "secret-token-123",
+	path: "/api/test",
+	body: {},
+});
+middlewareServer.handle({
+	ipAddress: "10.0.0.1",
+	authToken: "secret-token-123",
+	path: "/api/test",
+	body: {},
+});
+middlewareServer.handle({
+	ipAddress: "10.0.0.1",
+	authToken: "secret-token-123",
+	path: "/api/test",
+	body: {},
+});
+console.log(
+	middlewareServer.handle({
+		ipAddress: "10.0.0.1",
+		authToken: "secret-token-123",
+		path: "/api/test",
+		body: {},
+	}),
+);
