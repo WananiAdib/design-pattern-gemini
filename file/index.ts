@@ -1,61 +1,54 @@
-// composite/instructions.md (or initial code)
-class SimpleFile {
-    constructor(public name: string, public size: number) {}
+interface FileSystemComponent {
+    getName(): string;
+    getSize(): number;
 }
 
-class SimpleFolder {
-    public name: string;
-    public files: SimpleFile[] = [];
-    public subFolders: SimpleFolder[] = []; // Notice how we have to separate them
-
-    constructor(name: string) {
-        this.name = name;
+class FileLeaf implements FileSystemComponent {
+    constructor(private name: string, private size: number) {}
+    public getName() {
+        return this.name;
     }
 
-    addFile(file: SimpleFile) {
-        this.files.push(file);
-    }
-
-    addFolder(folder: SimpleFolder) {
-        this.subFolders.push(folder);
+    public getSize() {
+        return this.size;
     }
 }
 
-// The client has to know the exact structure and handle Files and Folders differently
-class FileSystemAnalyzer {
-    public calculateTotalSize(folder: SimpleFolder): number {
-        let total = 0;
-        
-        // Step 1: Add sizes of direct files
-        for (const file of folder.files) {
-            total += file.size;
-        }
-        
-        // Step 2: Recursively add sizes of sub-folders
-        for (const subFolder of folder.subFolders) {
-            total += this.calculateTotalSize(subFolder);
-        }
-        
-        return total;
+class Folder implements FileSystemComponent {
+    private components: FileSystemComponent[] = [];
+    constructor(private name: string) {}
+
+    public add(component: FileSystemComponent) {
+        this.components.push(component)
     }
+
+    public getName() {
+        return this.name;
+    }
+
+    public getSize() {
+        return this.components.reduce((prev, curr) => {
+            return prev + curr.getSize()
+        }, 0);
+    }
+
 }
 
-// --- Client Usage (Initial) ---
-const root = new SimpleFolder("Root");
-const docs = new SimpleFolder("Documents");
-const pics = new SimpleFolder("Pictures");
+// Create the tree
+const root = new Folder("Root");
+const docs = new Folder("Documents");
+const pics = new Folder("Pictures");
 
-const resume = new SimpleFile("resume.pdf", 150); // 150 KB
-const coverLetter = new SimpleFile("cover_letter.docx", 50); // 50 KB
-const vacationPic = new SimpleFile("beach.png", 2000); // 2000 KB
+// Notice we can add  and Folders using the exact same method
+docs.add(new FileLeaf("resume.pdf", 150));
+docs.add(new FileLeaf("cover_letter.docx", 50));
+pics.add(new FileLeaf("beach.png", 2000));
 
-docs.addFile(resume);
-docs.addFile(coverLetter);
-pics.addFile(vacationPic);
+root.add(docs);
+root.add(pics);
+root.add(new FileLeaf("readme.txt", 10));
 
-root.addFolder(docs);
-root.addFolder(pics);
-root.addFile(new SimpleFile("readme.txt", 10)); // 10 KB
-
-const analyzer = new FileSystemAnalyzer();
-console.log(`Total Size of Root: ${analyzer.calculateTotalSize(root)} KB`);
+// The client code no longer needs a complex analyzer!
+// It treats the complex Folder exactly the same as a simple File.
+console.log(`Total Size of Root: ${root.getSize()} KB`);
+console.log(`Total Size of Documents: ${docs.getSize()} KB`);
