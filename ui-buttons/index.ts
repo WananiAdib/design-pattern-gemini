@@ -26,31 +26,43 @@ class MacCheckbox implements Checkbox {
     paint() { console.log("Rendering a macOS-style Checkbox."); }
 }
 
+abstract class GUIFactory {
+    abstract createButton(): Button;
+    abstract createCheckbox(): Checkbox;
+}
+
+class WinFactory implements GUIFactory {
+    createButton() {
+        return new WinButton();
+    }
+
+    createCheckbox(): Checkbox {
+        return new WinCheckbox();
+    }
+}
+
+class MacFactory implements GUIFactory {
+    createButton() {
+        return new MacButton();
+    }
+
+    createCheckbox(): Checkbox {
+        return new MacCheckbox();
+    }
+}
+
 // --- The Client Code ---
 class Application {
-    private os: "Windows" | "macOS";
 
-    constructor(os: "Windows" | "macOS") {
-        this.os = os;
+    constructor(private guiFactory: GUIFactory) {
     }
 
     // Problem: The Application is tightly coupled to concrete classes (WinButton, MacButton, etc.)
     // If we add a new OS (like Linux), we have to modify this method and add more if/else blocks.
     public renderUI(): void {
-        console.log(`\n--- Rendering UI for ${this.os} ---`);
         
-        let button: Button;
-        let checkbox: Checkbox;
-
-        if (this.os === "Windows") {
-            button = new WinButton();
-            checkbox = new WinCheckbox();
-        } else if (this.os === "macOS") {
-            button = new MacButton();
-            checkbox = new MacCheckbox();
-        } else {
-            throw new Error("Unknown OS");
-        }
+        const button = this.guiFactory.createButton();
+        const checkbox = this.guiFactory.createCheckbox();
 
         button.paint();
         checkbox.paint();
@@ -58,8 +70,8 @@ class Application {
 }
 
 // --- Client Usage (Initial) ---
-const winApp = new Application("Windows");
+const winApp = new Application(new WinFactory());
 winApp.renderUI();
 
-const macApp = new Application("macOS");
+const macApp = new Application(new MacFactory());
 macApp.renderUI();
