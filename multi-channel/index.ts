@@ -1,41 +1,53 @@
 
 // bridge/instructions.md (or initial code)
 
-// A standard alert via Email
-class StandardEmailAlert {
-    send(title: string, message: string) {
-        console.log(`[Email] Title: ${title}`);
-        console.log(`[Email] Body: ${message}`);
+interface MessageSender {
+    sendMessage(text: string): void;
+}
+
+class EmailSender implements MessageSender {
+    sendMessage(text: string): void {
+        console.log(`[Email] ${text}`)
     }
 }
 
-// An urgent alert via Email
-class UrgentEmailAlert {
-    send(title: string, message: string) {
-        console.log(`[Email] *** URGENT: ${title} ***`);
-        console.log(`[Email] Body: ${message.toUpperCase()}`);
+class SMSSender implements MessageSender {
+    sendMessage(text: string): void {
+        console.log(`[SMS] ${text}`)
     }
 }
 
-// A standard alert via SMS
-class StandardSMSAlert {
-    send(title: string, message: string) {
-        console.log(`[SMS] ${title} - ${message}`);
+class SlackSender implements MessageSender {
+    sendMessage(text: string): void {
+        console.log(`[Slack] ${text}`)
     }
 }
 
-// An urgent alert via SMS
-class UrgentSMSAlert {
-    send(title: string, message: string) {
-        console.log(`[SMS] [URGENT] ${title} - ${message.toUpperCase()}`);
+abstract class MessageNotifier {
+    constructor (protected messageSender: MessageSender) {}
+
+    abstract send(title: string, message: string): void;
+}
+
+
+class StandardNotification extends MessageNotifier {
+    send(title: string, message: string): void {
+        this.messageSender.sendMessage(`${title} - ${message}`)
     }
 }
+
+class UrgentNotification extends MessageNotifier {
+    send(title: string, message: string): void {
+        this.messageSender.sendMessage(`[URGENT] ${title} - ${message}`)
+    }
+}
+
 
 // --- Client Usage (Initial) ---
-const emailAlert = new StandardEmailAlert();
+const emailAlert = new StandardNotification(new EmailSender());
 emailAlert.send("Server Load High", "CPU usage is at 85%.");
 
-const smsUrgent = new UrgentSMSAlert();
+const smsUrgent = new UrgentNotification( new SMSSender());
 smsUrgent.send("Server Down", "The main database is unresponsive.");
 
 // PROBLEM: If we add a new Channel (e.g., Slack) we have to create `StandardSlackAlert` and `UrgentSlackAlert`. 
