@@ -1,9 +1,7 @@
 // The Originator
 class TextEditor {
-	// PROBLEM: These fields have to be public so the client can save them.
-	// This breaks encapsulation!
-	public content: string = "";
-	public cursorPosition: number = 0;
+	private content: string = "";
+	private cursorPosition: number = 0;
 
 	public type(text: string): void {
 		this.content += text;
@@ -12,33 +10,54 @@ class TextEditor {
 			`[Typing] Content: "${this.content}" | Cursor: ${this.cursorPosition}`,
 		);
 	}
+
+	public save(): EditorMemento {
+		return new EditorMemento(this.content, this.cursorPosition);
+	}
+
+	public restore(memento: EditorMemento): void {
+		this.content = memento.content;
+		this.cursorPosition = memento.cursorPositon;
+	}
+}
+
+class EditorMemento {
+	readonly content: string;
+	readonly cursorPositon: number;
+
+	constructor(content: string, cursorPositon: number) {
+		this.content = content;
+		this.cursorPositon = cursorPositon;
+	}
+}
+
+class HistoryManager {
+	constructor(private history: EditorMemento[] = []) {}
+
+	push(memento: EditorMemento): void {
+		this.history.push(memento);
+	}
+	undo(editor: TextEditor) {
+		let latest = this.history.pop();
+		if (latest === undefined) {
+			latest = new EditorMemento("", 0);
+		}
+		editor.restore(latest);
+	}
 }
 
 // --- Client Usage (Initial) ---
 const editor = new TextEditor();
+const historyManager = new HistoryManager();
 
-// The Client is acting as the Caretaker, but it knows way too much about the Editor's internals.
-const historyStack: { content: string; cursor: number }[] = [];
-
-// Action 1
 editor.type("Hello ");
-historyStack.push({ content: editor.content, cursor: editor.cursorPosition }); // ❌ Reaching into internals
+historyManager.push(editor.save()); // Client asks Editor to save itself, passes the opaque Memento to History
 
-// Action 2
 editor.type("World!");
-historyStack.push({ content: editor.content, cursor: editor.cursorPosition }); // ❌ Reaching into internals
+historyManager.push(editor.save());
 
-// Action 3
 editor.type(" This is a typo.");
 
 console.log("\n--- Executing Undo ---");
-
-// The client manually overwrites the editor's state
-const previousState = historyStack.pop();
-if (previousState) {
-	editor.content = previousState.content;
-	editor.cursorPosition = previousState.cursor;
-	console.log(
-		`[Undo] Content: "${editor.content}" | Cursor: ${editor.cursorPosition}`,
-	);
-}
+historyManager.undo(editor); // "Hello World!"
+historyManager.undo(editor); // "Hello "
