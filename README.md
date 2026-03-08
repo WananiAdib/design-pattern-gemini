@@ -24,7 +24,7 @@
 - [x] Command
 - [ ] Interpreter
 - [ ] Iterator
-- [ ] Mediator
+- [x] Mediator
 - [x] Memento
 - [x] Observer
 - [x] State
