@@ -30,4 +30,4 @@
 - [x] State
 - [x] Strategy
 - [x] Template Method
-- [ ] Visitor
+- [x] Visitor
